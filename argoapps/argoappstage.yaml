@@ -4,7 +4,8 @@ metadata:
   name: argo-app   #name of the application
 spec:
   destination:
-    name: 'uat-gke'  #GKE cluster name where the application will get deployed
+    server: 'https://34.171.22.205'
+    #name: 'uat-gke'  #GKE cluster name where the application will get deployed
     namespace: uat-namespace
   source:
     path: argoapps #deployment yaml file path to be referred in the git 
