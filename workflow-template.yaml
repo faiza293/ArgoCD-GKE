@@ -1,0 +1,181 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: my-workflow
+  namespace: argo
+spec:
+  serviceAccountName: "argo-wf-sa"
+  arguments:
+    parameters:
+      - name: org
+        value: "Organization name"
+      - name: repo
+        value: "repo name"
+      - name: k8repo
+        value: "neon"
+      - name: branch
+        value: "staging"
+      - name: branch1
+        value: "staging"
+      - name: GH_ACCESS_TOKEN
+        value: "git token"
+  entrypoint: main
+  templates:
+  - name: main
+    steps:
+    - - name: git-clone
+        template: git-clone
+        arguments:
+          parameters:
+          - name: repo
+            value: "https://github.com/{{workflow.parameters.org}}/{{workflow.parameters.repo}}.git"
+    - - name: docker-build
+        template: build
+        arguments:
+          artifacts:
+          - name: repo
+            from: "{{steps.git-clone.outputs.artifacts.repo}}"
+          parameters:
+          - name: image
+            value: "{{steps.git-clone.outputs.parameters.generated-image-tag}}"
+    - - name: docker-update
+        template: update
+        arguments:
+          parameters:
+          - name: repo1
+            value: "https://github.com/{{workflow.parameters.org}}/{{workflow.parameters.k8repo}}.git"
+          - name: imageID
+            value: "{{steps.git-clone.outputs.parameters.generated-image-tag}}"
+          - name: branch1
+            value: "{{workflow.parameters.branch1}}"
+          artifacts:
+          - name: repo
+            from: "{{steps.git-clone.outputs.artifacts.repo}}"
+  - name: get-branch
+    outputs:
+      parameters: 
+      - name: generated-branch-tag
+        valueFrom: 
+          path: /tmp/branch_tag
+    container:
+      image: alpine/git:2.36.3
+      workingDir: /repo
+      command: ["/bin/sh"]
+      args:
+        - -c
+        - >-  
+              branch={{workflow.parameters.branch}} && echo $branch | cut -d'/' -f3-  > /tmp/branch_tag
+  - name: git-clone
+    inputs:
+      parameters:
+      - name: repo
+      artifacts:
+      - name: repo
+        path: /repo
+        git:
+          repo: "{{inputs.parameters.repo}}"
+          revision: "{{workflow.parameters.branch}}"
+          usernameSecret:
+            name: github-credentials
+            key: username
+          passwordSecret:
+            name: github-credentials
+            key: password
+          depth: 1
+    volumes:
+      - name: docker-config
+        configMap:
+          name: docker-config      
+    container:
+      image: golang:1.10
+      command: [sh, -c]
+      args: ["echo \"$(basename -s .git $(git config --get remote.origin.url) | sed -r 's/[/_]/-/g'):$(git rev-parse | sed -r 's/[/_]/-/g')$(git describe --tags)\" > /tmp/image_tag"]
+      workingDir: /repo
+    outputs:
+      artifacts:
+      - name: repo
+        path: /repo/
+      parameters: 
+      - name: generated-image-tag
+        valueFrom: 
+          default: "default"
+          path: /tmp/image_tag
+  - name: build
+    inputs:
+      artifacts:
+      - name: repo
+        path: repo
+      parameters:
+      - name: image
+    container:
+      image: gcr.io/kaniko-project/executor:v1.9.0
+      workingDir: /repo
+      command: [/kaniko/executor]
+      args:
+      - --dockerfile=Dockerfile
+      - --build-arg=GITHUB_TOKEN=$(GIT_ACCESS_TOKEN)
+      - --destination=asia-south1-docker.pkg.dev/project-id/repo-name/{{inputs.parameters.image}}
+      - --cache=true
+      - --compressed-caching=false
+      - --cache-repo=asia-south1-docker.pkg.dev/project-id/repo-name/{{workflow.parameters.repo}}-cache
+      - --context=/repo
+      env:
+        - name: GIT_ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitaccesstoken
+              key: ghtoken
+  - name: update
+    inputs:
+      parameters:
+      - name: imageID
+      - name: repo1
+      - name: branch1
+      artifacts:
+      - name: repo1
+        path: /repo
+        git:
+          repo: "{{inputs.parameters.repo1}}"
+          revision: "{{inputs.parameters.branch1}}"
+          usernameSecret:
+            name: github-credentials
+            key: username
+          passwordSecret:
+            name: github-credentials
+            key: password
+          depth: 1
+    container:
+      image: alpine/git:2.36.3
+      workingDir: /repo
+      command:  ["/bin/sh"]
+      args:
+        - -c
+        - >-  
+            set -x &&
+            cd your-workloads/path/{{workflow.parameters.repo}} &&
+            cat deployment.yaml &&
+            Image_ID={{inputs.parameters.imageID}} &&
+            Image_ID=${Image_ID#*:} &&
+            echo $Image_ID &&
+            git checkout {{inputs.parameters.branch1}} &&
+            sed -i "s/:v.*/:$Image_ID/g" deployment-ga.yaml &&
+            cat deployment-ga.yaml &&
+            git status &&
+            git branch &&
+            git config --global user.email "your-git-email" &&
+            git config --global user.name $git_user &&
+            git remote set-url origin https://$git_user:$git_pass@github.com/{{workflow.parameters.org}}/{{workflow.parameters.k8repo}}.git &&
+            git add deployment.yaml &&
+            git commit -m "Automation updated version.yaml" &&
+            git push --set-upstream origin {{inputs.parameters.branch1}}
+      env:
+      - name: git_user
+        valueFrom:
+          secretKeyRef:
+            name: github-credentials
+            key:  username
+      - name: git_pass
+        valueFrom:
+          secretKeyRef:
+            name: github-credentials
+            key:  password

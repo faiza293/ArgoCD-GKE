@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role # it can be ClusterRole if you want your service account for all nodes and across all namespaces
+metadata:
+  namespace: argo # if can specify any your working namespace
+  name: depl-patch-role
+rules:
+- apiGroups: [""] # "" indicates the core API group, you can set any specific group
+  resources: ["deployments","pods"]
+  verbs: ["update", "patch"]
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: depl-patch-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: argo-wf-sa
+  apiGroup: "" # same as above
+roleRef:
+  kind: Role
+  name: depl-patch-role
+  apiGroup: ""
