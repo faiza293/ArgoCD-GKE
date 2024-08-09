@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment-prod
+  labels:
+    app: nginx
+    environment: prod
+spec:
+  replicas: 2  # Increase the number of replicas for production
+  selector:
+    matchLabels:
+      app: nginx
+      environment: prod
+  template:
+    metadata:
+      labels:
+        app: nginx
+        environment: prod
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service-prod
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: nginx
+    environment: prod

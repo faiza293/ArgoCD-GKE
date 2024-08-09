@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-app-staging
+spec:
+  destination:
+    server: 'https://34.171.22.205'  # Staging cluster API server URL
+    namespace: staging     # Namespace for the staging environment
+  source:
+    path: argoapps/staging            # Path to the staging deployment files
+    repoURL: 'https://github.com/faiza293/ArgoCD-GKE.git'
+    targetRevision: main
+    helm:
+      valueFiles:
+        - values.yaml
+  project: argocd-project
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - PrunePropagationPolicy=foreground
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-app-prod
+spec:
+  destination:
+    server: 'https://34.29.114.28'  # Production cluster API server URL
+    namespace: prod            # Namespace for the production environment
+  source:
+    path: argoapps/prod                   # Path to the production deployment files
+    repoURL: 'https://github.com/faiza293/ArgoCD-GKE.git'
+    targetRevision: main
+    helm:
+      valueFiles:
+        - values.yaml
+  project: argocd-project
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - PrunePropagationPolicy=foreground
