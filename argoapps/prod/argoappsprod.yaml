@@ -7,7 +7,7 @@ spec:
     server: 'https://34.29.114.28'  # Production cluster API server URL
     namespace: prod            # Namespace for the production environment
   source:
-    path: argoapps/prod                   # Path to the production deployment files
+    path: argoapps/prod                   # Path to the production deployment filesss
     repoURL: 'https://github.com/faiza293/ArgoCD-GKE.git'
     targetRevision: main
   project: argocd-project
