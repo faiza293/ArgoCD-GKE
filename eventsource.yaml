@@ -5,16 +5,16 @@ metadata:
 spec:
   service:
     ports:
-      - port: 443
+      - port: 12000
         targetPort: 12000
   github:
     example:
       owner: faiza293
       repository: ArgoCD-GKE # eg. eg. frontend, backend, myapi
       webhook:
-        url: http://35.238.44.64:443/my-event
+        url: https://34.70.215.99/api/webhook
         endpoint: /my-event
-        port: "443"
+        port: "12000"
         method: POST
       events:
         - "*"
