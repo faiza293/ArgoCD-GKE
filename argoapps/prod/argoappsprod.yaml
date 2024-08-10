@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argo-app-prod
+  name: argo-app-prod1
 spec:
   destination:
     server: 'https://34.29.114.28'  # Production cluster API server URL
