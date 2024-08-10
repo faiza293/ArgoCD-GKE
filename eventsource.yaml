@@ -12,7 +12,7 @@ spec:
       owner: faiza293
       repository: ArgoCD-GKE # eg. eg. frontend, backend, myapi
       webhook:
-        url: https://35.238.44.64/api/webhook
+        url: http://35.238.44.64/api/webhook
         endpoint: /my-event
         port: "443"
         method: POST
