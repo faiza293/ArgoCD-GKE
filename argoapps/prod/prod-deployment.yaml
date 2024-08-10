@@ -6,7 +6,7 @@ metadata:
     app: nginx
     environment: prod
 spec:
-  replicas: 2  # Increase the number of replicas for production
+  replicas: 1  # Increase the number of replicas for production
   selector:
     matchLabels:
       app: nginx
