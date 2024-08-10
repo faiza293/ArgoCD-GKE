@@ -13,7 +13,7 @@ spec:
       repository: ArgoCD-GKE # eg. eg. frontend, backend, myapi
       webhook:
         url: http://35.238.44.64/api/webhook
-        endpoint: /my-event
+        endpoint: /ArgoCD-GKE
         port: "443"
         method: POST
       events:
